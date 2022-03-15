@@ -2,7 +2,7 @@
  * @Date: 2022-03-11 16:20:55
  * @Author: wang0122xl@163.com
  * @LastEditors: wang0122xl@163.com
- * @LastEditTime: 2022-03-14 22:00:34
+ * @LastEditTime: 2022-03-15 10:18:44
  * @Description: file content
  */
 import jspdf from 'jspdf'
@@ -13,8 +13,8 @@ type PDFSize = {
     height: number
 }
 const A4Size: PDFSize = {
-    width: 595,
-    height: 841
+    width: 210,
+    height: 297
 }
 const A5Size: PDFSize = {
     width: 419.527,
@@ -76,7 +76,7 @@ class DomToPdf {
     private createPdfIfNotExisted(size: PDFSize, pdf?: jspdf) {
         let resultPdf = pdf
         if (!resultPdf) {
-            resultPdf = new jspdf('p', 'pt', [size.width, size.height])
+            resultPdf = new jspdf('p', 'mm', [size.width, size.height])
             resultPdf.addFileToVFS('heiti.ttf', this.heitiString)
             resultPdf.addFont('heiti.ttf', 'heiti', 'normal')
             resultPdf.setFont('heiti')
@@ -184,7 +184,7 @@ class DomToPdf {
          * @return {number} pt值
        */
         function calculateLength(length: number) {
-            return (pdfWidth / parentRect.width) * length
+            return (size.width / parentRect.width) * length
         }
 
         /**
@@ -263,7 +263,7 @@ class DomToPdf {
             }
             
             console.log(top)
-            promises.push(this.pdfAddEle({
+            await this.pdfAddEle({
                 pdf,
                 element: childEle,
                 top: top,
@@ -271,7 +271,16 @@ class DomToPdf {
                 width: pdfWidth,
                 height: eleHeight,
                 page: currentPage
-            }))
+            })
+            // promises.push(this.pdfAddEle({
+            //     pdf,
+            //     element: childEle,
+            //     top: top,
+            //     left,
+            //     width: pdfWidth,
+            //     height: eleHeight,
+            //     page: currentPage
+            // }))
             // top += calculateLength(childEle.offsetHeight)
             if (i < childrenElements.length - 1) {
                 top += calculateLength(childrenElements[i + 1].getBoundingClientRect().y) - eleY

@@ -2,7 +2,7 @@
  * @Date: 2022-03-11 15:22:08
  * @Author: wang0122xl@163.com
  * @LastEditors: wang0122xl@163.com
- * @LastEditTime: 2022-03-14 21:59:35
+ * @LastEditTime: 2022-03-15 10:18:49
  * @Description: file content
  */
 import React, { useMemo } from 'react'
@@ -18,7 +18,7 @@ export type PDFPreviewType = 'download' | 'print' | 'all'
 const App = () => {
     const items = useMemo(() => {
         const result: string[] = []
-        for (let i = 0; i < 14; i++) {
+        for (let i = 0; i < 15; i++) {
             
             result.push(`rgb(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255})`)
             
@@ -39,7 +39,7 @@ const App = () => {
         const domToPdf = new DomToPdf()
         const pdf = await domToPdf.transformToPdf({
             element: document.getElementById('test')! as HTMLDivElement,
-            padding: [1, 30, 15, 30]
+            padding: [0, 10, 5, 10]
         })
         _print(pdf)
         console.log(pdf)
@@ -48,13 +48,13 @@ const App = () => {
     return (
         <div id='print-container'>
             <div className={`print-layer a4`} id='test'>
-                <div className='text-24px h-24px font-500 text-[#333] text-center mt-0px bg-red-400'>
+                <div className='text-24px h-24px font-500 text-[#333] text-center mt-10px bg-red-400'>
                     dom-to-pdf
                 </div>
                 {items.map((c, index) => (
                     <div key={index} style={{
                         backgroundColor: c,
-                        width: '100%',
+                        // width: '100%',
                         height: '60px',
                         marginTop: 5,
                         marginBottom: 15,
