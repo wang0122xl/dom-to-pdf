@@ -2,7 +2,7 @@
  * @Date: 2022-03-11 15:22:08
  * @Author: wang0122xl@163.com
  * @LastEditors: wang0122xl@163.com
- * @LastEditTime: 2022-03-15 13:59:03
+ * @LastEditTime: 2022-03-15 15:18:00
  * @Description: file content
  */
 import React, { useMemo } from 'react'
@@ -18,7 +18,7 @@ export type PDFPreviewType = 'download' | 'print' | 'all'
 const App = () => {
     const items = useMemo(() => {
         const result: string[] = []
-        for (let i = 0; i < 15; i++) {
+        for (let i = 0; i < 25; i++) {
             
             result.push(`rgb(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255})`)
             
@@ -39,7 +39,16 @@ const App = () => {
         const domToPdf = new DomToPdf()
         const pdf = await domToPdf.transformToPdf({
             element: document.getElementById('test')! as HTMLDivElement,
-            padding: [0, 10, 5, 10]
+            padding: [0, 10, 5, 10],
+            isSeperatorCallback: ele => {
+                return ele.innerHTML === '8'
+            },
+            renderPageFooter: (pdf, currentPage) => {
+                pdf
+                    .setTextColor('#111')
+                    .setFontSize(8)
+                    .text(`第${currentPage}页`, pdf.internal.pageSize.getWidth() - 17, pdf.internal.pageSize.getHeight() - 1)
+            },
         })
         _print(pdf)
     }

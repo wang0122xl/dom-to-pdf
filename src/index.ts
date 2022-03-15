@@ -2,7 +2,7 @@
  * @Date: 2022-03-11 16:20:55
  * @Author: wang0122xl@163.com
  * @LastEditors: wang0122xl@163.com
- * @LastEditTime: 2022-03-15 14:03:59
+ * @LastEditTime: 2022-03-15 21:23:41
  * @Description: file content
  */
 import jspdf from 'jspdf'
@@ -24,9 +24,14 @@ type ExtraRenderFunction = (pdf: jspdf, currentPage: number) => void
 
 type PDFPadding = [top: number, right: number, bottom: number, left: number]
 
+const defaultIsSeperatorCallback = (ele: HTMLElement) => {
+    return ele.classList.contains('pdf-seperator')
+}
+
 /**
   * @param {boolean} [inOnePdf = false] 多个元素是否生成在一个pdf中
   * @param {boolean} [seperate = true] 多元素生成在一个pdf，元素间是否换页
+  * @param {boolean} isSeperatorCallback 判断元素是否作为换页元素，该元素渲染后立即换页
   * @param {PDFSize} [size = A4Size] pdf尺寸
   * @param {PDFPadding} [padding = [0, 0, 0, 0]] pdf内边距，尺寸为实际的pt值，[上，右，下，左]
   * @param {ExtraRenderFunction} renderPageHeader 自定义pdf页眉
@@ -39,6 +44,7 @@ type PDFPadding = [top: number, right: number, bottom: number, left: number]
 type DomToPDFProps = {
     inOnePdf?: boolean
     seperate?: boolean
+    isSeperatorCallback?: (ele: HTMLElement) => boolean
     size?: PDFSize
     padding?: PDFPadding
     renderPageHeader?: ExtraRenderFunction
@@ -89,6 +95,16 @@ class DomToPdf {
         return resultPdf
     }
 
+    private async promisifyCreateImage (src: string): Promise<HTMLImageElement> {
+        return new Promise(resolve => {
+            const img = document.createElement('img')
+            img.src = src
+            img.onload = function () {
+                resolve(img)
+            }
+        })
+    }
+
     private async pdfAddEle(props: Omit<DomToPDFProps, 'size' | 'inOnePdf'> & {
         pdf: jspdf
         element: HTMLElement
@@ -102,15 +118,23 @@ class DomToPdf {
         const marginBottom = props.element.style.marginBottom
         props.element.style.marginTop = '0'
         props.element.style.marginBottom = '0'
-        const imgData = await htmlToImage.toPng(props.element, {
-            quality: 1
-        })
-        props.element.style.marginTop = marginTop
-        props.element.style.marginBottom = marginBottom
-        props.pdf.setPage(props.page)
-        const img = document.createElement('img')
-        img.src = imgData
-        props.pdf.addImage(imgData, 'PNG', props.left, props.top, props.width, props.height)
+
+        return htmlToImage
+            .toSvg(props.element, { quality: 1 })
+            .then(imgData => this.promisifyCreateImage(imgData))
+            .then(img => {
+                props.pdf.setPage(props.page)
+                props.element.style.marginTop = marginTop
+                props.element.style.marginBottom = marginBottom
+                const canvas = document.createElement('canvas')
+                canvas.width = img.width * 2
+                canvas.height = img.height * 2
+                const context = canvas.getContext('2d')!
+                context.fillStyle = 'transparent'
+                context.drawImage(img, 0, 0, canvas.width, canvas.height)
+                const src = canvas.toDataURL('image/png', 1)
+                props.pdf.addImage(src, 'PNG', props.left, props.top, props.width, props.height)
+            })
     }
 
     /**
@@ -123,6 +147,7 @@ class DomToPdf {
         element: HTMLDivElement
     }): Promise<jspdf> {
         const {
+            isSeperatorCallback = defaultIsSeperatorCallback,
             inOnePdf = false,
             seperate = true,
             firstElementAsHeader = true,
@@ -226,10 +251,41 @@ class DomToPdf {
 
             let bottomY = top + rect.height + padding[2]
             if (lastElementAsFooter) {
-                console.log(lastOffsetY, lastEleHeight, 'kk', bottomY)
                 bottomY += lastEleHeight + lastOffsetY
             }
             return size.height - bottomY
+        }
+
+        function createNewPage(self: DomToPdf) {
+            if (lastElementAsFooter) {
+                promises.push(self.pdfAddEle({
+                    pdf,
+                    element: lastEle,
+                    top: lastEleAsFooterY,
+                    left,
+                    width: pdfWidth,
+                    height: lastEleHeight,
+                    page: currentPage
+                }))
+            }
+            renderPageFooter?.(pdf, pdf.getCurrentPageInfo().pageNumber)
+            
+            currentPage ++
+            pdf.addPage()
+            initializePage()
+            renderPageHeader?.(pdf, pdf.getCurrentPageInfo().pageNumber)
+            if (firstElementAsHeader) {
+                promises.push(self.pdfAddEle({
+                    pdf,
+                    element: firstEle,
+                    top,
+                    left,
+                    width: pdfWidth,
+                    height: firstEleHeight,
+                    page: currentPage
+                }))
+                top += secondEleY - firstEleY
+            }
         }
         
         initializePage()
@@ -241,6 +297,7 @@ class DomToPdf {
 
         for (let i = 0; i < childrenElements.length; i++) {
             const childEle = element.children[i] as HTMLElement
+
             const {
                 height: eleHeight,
                 y: eleY
@@ -251,38 +308,8 @@ class DomToPdf {
 
             // 元素跨页
             if (dValue < 0) {
-                if (lastElementAsFooter) {
-                    promises.push(this.pdfAddEle({
-                        pdf,
-                        element: lastEle,
-                        top: lastEleAsFooterY,
-                        left,
-                        width: pdfWidth,
-                        height: lastEleHeight,
-                        page: currentPage
-                    }))
-                }
-                renderPageFooter?.(pdf, pdf.getCurrentPageInfo().pageNumber)
-                
-                currentPage ++
-                pdf.addPage()
-                initializePage()
-                renderPageHeader?.(pdf, pdf.getCurrentPageInfo().pageNumber)
-                if (firstElementAsHeader) {
-                    promises.push(this.pdfAddEle({
-                        pdf,
-                        element: firstEle,
-                        top,
-                        left,
-                        width: pdfWidth,
-                        height: firstEleHeight,
-                        page: currentPage
-                    }))
-                    top += firstOffsetY + firstEleHeight
-                }
-
+                createNewPage(this)
             }
-            console.log(childEle.innerHTML, currentPage, dValue)
             const originTop = top
             if (i < childrenElements.length - 1) {
                 top += calculateLength(childrenElements[i + 1].getBoundingClientRect().y) - eleY
@@ -298,6 +325,9 @@ class DomToPdf {
                 height: eleHeight,
                 page: currentPage
             }))
+            if (isSeperatorCallback(childEle)) {
+                createNewPage(this)
+            }
             // promises.push(this.pdfAddEle({
             //     pdf,
             //     element: childEle,
@@ -309,7 +339,7 @@ class DomToPdf {
             // }))
             // top += calculateLength(childEle.offsetHeight)
         }
-        renderPageFooter?.(pdf, 1)
+        renderPageFooter?.(pdf, currentPage)
 
         await Promise.all(promises)
 
