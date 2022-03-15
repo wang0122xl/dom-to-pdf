@@ -2,7 +2,7 @@
  * @Date: 2022-03-11 15:22:08
  * @Author: wang0122xl@163.com
  * @LastEditors: wang0122xl@163.com
- * @LastEditTime: 2022-03-15 10:18:49
+ * @LastEditTime: 2022-03-15 13:59:03
  * @Description: file content
  */
 import React, { useMemo } from 'react'
@@ -42,7 +42,6 @@ const App = () => {
             padding: [0, 10, 5, 10]
         })
         _print(pdf)
-        console.log(pdf)
     }
 
     return (
@@ -61,6 +60,10 @@ const App = () => {
                         lineHeight: '60px'
                     }}>{index}</div>
                 ))}
+                <div className='text-15px h-24px font-500 text-[#333] my-10px border-1px border-solid border-[#ccc] border-l-0 border-r-0 py-20px flex items-center justify-between'>
+                    <span>这是一个footer</span>
+                    <span>{new Date().toDateString()}</span>
+                </div>
             </div>
                 
             <div className='flex justify-center mb-10vh'>

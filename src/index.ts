@@ -2,7 +2,7 @@
  * @Date: 2022-03-11 16:20:55
  * @Author: wang0122xl@163.com
  * @LastEditors: wang0122xl@163.com
- * @LastEditTime: 2022-03-15 10:18:44
+ * @LastEditTime: 2022-03-15 14:03:59
  * @Description: file content
  */
 import jspdf from 'jspdf'
@@ -52,11 +52,12 @@ class DomToPdf {
     private heitiString?: any
 
     private async loadFont () {
-        this.heitiString = await import('./heiti')
+        const { heitiString } = await import('./heiti.js')
+        this.heitiString = heitiString
     }
 
     constructor() {
-        this.loadFont = this.loadFont.bind(this)
+        
     }
     /**
      * @description: 
@@ -73,8 +74,12 @@ class DomToPdf {
      * @param {jspdf} pdf
      * @return {jspdf}
      */
-    private createPdfIfNotExisted(size: PDFSize, pdf?: jspdf) {
+    private async createPdfIfNotExisted(size: PDFSize, pdf?: jspdf) {
         let resultPdf = pdf
+
+        if (!this.heitiString) {
+            await this.loadFont()
+        }
         if (!resultPdf) {
             resultPdf = new jspdf('p', 'mm', [size.width, size.height])
             resultPdf.addFileToVFS('heiti.ttf', this.heitiString)
@@ -120,6 +125,8 @@ class DomToPdf {
         const {
             inOnePdf = false,
             seperate = true,
+            firstElementAsHeader = true,
+            lastElementAsFooter = true,
             element,
             size = A4Size,
             padding = [0, 0, 0, 0],
@@ -143,7 +150,9 @@ class DomToPdf {
             throw new Error(`element: ${element} has less than 2 child nodes`)
         }
         const firstEle = element.children[0] as HTMLElement
+        const secondEle = element.children[1] as HTMLElement
         const lastEle = element.children[element.children.length - 1] as HTMLElement
+        const lastSecondEle = element.children[element.children.length - 2] as HTMLElement
         const {
             y: firstEleY,
             height: firstEleHeight
@@ -152,13 +161,20 @@ class DomToPdf {
             y: lastEleY,
             height: lastEleHeight
         } = calculateBoundingRect(lastEle)
+        const {
+            y: secondEleY,
+            height: secondEleHeight
+        } = calculateBoundingRect(secondEle)
+        const {
+            y: lastSecondEleY,
+            height: lastSecondEleHeight
+        } = calculateBoundingRect(lastSecondEle)
 
-        const lastOffsetY = lastEleY - calculateLength(childrenElements[childrenElements.length - 2].getBoundingClientRect().y)
-        const firstOffsetY = calculateLength(childrenElements[1].getBoundingClientRect().y) - firstEleY
+        const lastOffsetY = lastEleY - lastSecondEleY - lastSecondEleHeight
+        const firstOffsetY = secondEleY - firstEleY - firstEleHeight
 
-        let remainOffsetTop = 0
         let currentPage = 1
-        const pdf = this.createPdfIfNotExisted(size, props.pdf)
+        const pdf = await this.createPdfIfNotExisted(size, props.pdf)
 
         function calculateBoundingRect(ele: HTMLElement): Pick<DOMRect, 'width' | 'y' | 'height'> {
             const rect = ele.getBoundingClientRect()
@@ -197,10 +213,10 @@ class DomToPdf {
             const isLast = ele === lastEle
             const rect = calculateBoundingRect(ele)
             let total = rect.height + padding[0] + padding[2]
-            if (props.firstElementAsHeader && !isFirst) {
+            if (firstElementAsHeader && !isFirst) {
                 total += firstEleHeight + firstEleY - calculateLength(parentRect.y) + firstOffsetY
             }
-            if (props.lastElementAsFooter && !isLast) {
+            if (lastElementAsFooter && !isLast) {
                 total += lastOffsetY + lastEleHeight
             }
             if (total > size.height) {
@@ -208,17 +224,20 @@ class DomToPdf {
                 throw new Error('element 超出pdf最大高度')
             }
 
-            let bottomY = top + rect.height + padding[2] - remainOffsetTop
-            if (props.lastElementAsFooter) {
+            let bottomY = top + rect.height + padding[2]
+            if (lastElementAsFooter) {
+                console.log(lastOffsetY, lastEleHeight, 'kk', bottomY)
                 bottomY += lastEleHeight + lastOffsetY
             }
-            return size.height * currentPage - bottomY
+            return size.height - bottomY
         }
         
         initializePage()
 
         const promises: Promise<void>[] = []
         renderPageFooter?.(pdf, 1)
+
+        const lastEleAsFooterY = size.height - padding[2] - lastEleHeight
 
         for (let i = 0; i < childrenElements.length; i++) {
             const childEle = element.children[i] as HTMLElement
@@ -232,46 +251,53 @@ class DomToPdf {
 
             // 元素跨页
             if (dValue < 0) {
-                remainOffsetTop = Math.abs(dValue)
+                if (lastElementAsFooter) {
+                    promises.push(this.pdfAddEle({
+                        pdf,
+                        element: lastEle,
+                        top: lastEleAsFooterY,
+                        left,
+                        width: pdfWidth,
+                        height: lastEleHeight,
+                        page: currentPage
+                    }))
+                }
+                renderPageFooter?.(pdf, pdf.getCurrentPageInfo().pageNumber)
+                
                 currentPage ++
                 pdf.addPage()
                 initializePage()
                 renderPageHeader?.(pdf, pdf.getCurrentPageInfo().pageNumber)
-                if (props.firstElementAsHeader) {
+                if (firstElementAsHeader) {
                     promises.push(this.pdfAddEle({
                         pdf,
                         element: firstEle,
-                        top: firstEleY - calculateLength(parentRect.y),
+                        top,
                         left,
                         width: pdfWidth,
                         height: firstEleHeight,
                         page: currentPage
                     }))
+                    top += firstOffsetY + firstEleHeight
                 }
-                if (props.lastElementAsFooter) {
-                    promises.push(this.pdfAddEle({
-                        pdf,
-                        element: lastEle,
-                        top: size.height - padding[2] - lastEleHeight - lastOffsetY,
-                        left,
-                        width: pdfWidth,
-                        height: calculateLength(firstEle.offsetHeight),
-                        page: currentPage
-                    }))
-                }
-                renderPageFooter?.(pdf, pdf.getCurrentPageInfo().pageNumber)
+
             }
-            
-            console.log(top)
-            await this.pdfAddEle({
+            console.log(childEle.innerHTML, currentPage, dValue)
+            const originTop = top
+            if (i < childrenElements.length - 1) {
+                top += calculateLength(childrenElements[i + 1].getBoundingClientRect().y) - eleY
+            }
+            promises.push(this.pdfAddEle({
                 pdf,
                 element: childEle,
-                top: top,
+                top: (i === childrenElements.length - 1 && lastElementAsFooter) ?
+                   lastEleAsFooterY :
+                   originTop,
                 left,
                 width: pdfWidth,
                 height: eleHeight,
                 page: currentPage
-            })
+            }))
             // promises.push(this.pdfAddEle({
             //     pdf,
             //     element: childEle,
@@ -282,9 +308,6 @@ class DomToPdf {
             //     page: currentPage
             // }))
             // top += calculateLength(childEle.offsetHeight)
-            if (i < childrenElements.length - 1) {
-                top += calculateLength(childrenElements[i + 1].getBoundingClientRect().y) - eleY
-            }
         }
         renderPageFooter?.(pdf, 1)
 
