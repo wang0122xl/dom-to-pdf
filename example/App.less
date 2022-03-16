@@ -87,5 +87,33 @@ button {
     &.a5 {
         width: 419.527pt;
     }
+
+    table {
+        width: 100%;
+        table-layout: fixed;
+        text-align: center;
+        border-collapse: collapse;
+
+        tr {
+            td, th {
+                padding: 10px 15px;
+                border: 1px solid #ccc;
+            }
+        }
+    }
+
+    &.dom-to-pdf-transforming {
+        table {
+            tr {
+                transform: translateY(-0.5px);
+                td, th {
+                    &:not(:first-of-type,:last-of-type) {
+                        border-left: none;
+                        border-right: none;
+                    }
+                }
+            }
+        }
+    }
 }
 

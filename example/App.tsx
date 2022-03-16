@@ -2,7 +2,7 @@
  * @Date: 2022-03-11 15:22:08
  * @Author: wang0122xl@163.com
  * @LastEditors: wang0122xl@163.com
- * @LastEditTime: 2022-03-15 15:18:00
+ * @LastEditTime: 2022-03-16 17:18:29
  * @Description: file content
  */
 import React, { useMemo } from 'react'
@@ -17,16 +17,38 @@ export type PDFPreviewType = 'download' | 'print' | 'all'
 
 const App = () => {
     const items = useMemo(() => {
+        const getRandom = () => {
+            return Math.round(Math.random() * 255)
+        }
         const result: string[] = []
-        for (let i = 0; i < 25; i++) {
+        for (let i = 0; i < 11; i++) {
             
-            result.push(`rgb(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255})`)
+            result.push(`rgb(${getRandom()}, ${getRandom()}, ${getRandom()})`)
             
         }
         return result
     }, [])
 
-    const _print = (pdf: jsPDF) => {
+    const _getPdf = async () => {
+        const domToPdf = new DomToPdf()
+        const pdf = await domToPdf.transformToPdf({
+            element: document.getElementById('test')! as HTMLDivElement,
+            padding: [0, 10, 5, 10],
+            // isSeperatorCallback: ele => {
+            //     return ele.innerHTML === '8'
+            // },
+            renderPageFooter: (pdf, currentPage) => {
+                pdf
+                    .setTextColor('#111')
+                    .setFontSize(8)
+                    .text(`第${currentPage}页`, pdf.internal.pageSize.getWidth() - 17, pdf.internal.pageSize.getHeight() - 1)
+            },
+        })
+        return pdf
+    }
+
+    const doPrint = async () => {
+        const pdf = await _getPdf()
         const w = window.open()!
         const iframe = document.createElement('iframe')
         iframe.hidden = true
@@ -35,22 +57,9 @@ const App = () => {
         iframe.contentWindow?.print()
     }
 
-    const _download = async () => {
-        const domToPdf = new DomToPdf()
-        const pdf = await domToPdf.transformToPdf({
-            element: document.getElementById('test')! as HTMLDivElement,
-            padding: [0, 10, 5, 10],
-            isSeperatorCallback: ele => {
-                return ele.innerHTML === '8'
-            },
-            renderPageFooter: (pdf, currentPage) => {
-                pdf
-                    .setTextColor('#111')
-                    .setFontSize(8)
-                    .text(`第${currentPage}页`, pdf.internal.pageSize.getWidth() - 17, pdf.internal.pageSize.getHeight() - 1)
-            },
-        })
-        _print(pdf)
+    const doDownload = async () => {
+        const pdf = await _getPdf()
+        pdf.save('test')
     }
 
     return (
@@ -60,7 +69,44 @@ const App = () => {
                     dom-to-pdf
                 </div>
                 {items.map((c, index) => (
-                    <div key={index} style={{
+                    <div key={index} className='border-1px border-solid border-[#000]' style={{
+                        backgroundColor: c,
+                        // width: '100%',
+                        height: '60px',
+                        marginTop: 5,
+                        marginBottom: 15,
+                        lineHeight: '60px'
+                    }}>{index}</div>
+                ))}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>title</th>
+                            <th>content</th>
+                            <th>index</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {
+                        items.map((c, index) => (
+                            <tr>
+                                <td colSpan={1}>{c}</td>
+                                <td colSpan={1}>
+                                    <div
+                                        className='w-100px mx-auto h-35px'
+                                        style={{
+                                            backgroundColor: c
+                                        }}
+                                    />
+                                </td>
+                                <td colSpan={1}>{index}</td>
+                            </tr>
+                        ))
+                    }
+                    </tbody>
+                </table>
+                {items.map((c, index) => (
+                    <div key={index + '-next'} className='border-1px border-solid border-[#000]' style={{
                         backgroundColor: c,
                         // width: '100%',
                         height: '60px',
@@ -75,8 +121,9 @@ const App = () => {
                 </div>
             </div>
                 
-            <div className='flex justify-center mb-10vh'>
-                <Button type='primary' onClick={_download}>打印</Button>
+            <div className='flex justify-center mb-10vh space-x-25px'>
+                <Button type='primary' onClick={doDownload}>下载</Button>
+                <Button type='primary' onClick={doPrint}>打印</Button>
             </div>
 
         </div>
