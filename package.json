@@ -1,9 +1,9 @@
 {
   "name": "element-to-pdf",
   "private": false,
-  "version": "1.0.2",
+  "version": "1.0.3",
   "homepage": "https://wang0122xl.github.io/dom-to-pdf/",
-  "main": "libs/index.d.ts",
+  "main": "libs/index.js",
   "files": [
     "libs/*"
   ],
@@ -26,7 +26,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "prepublishOnly": "rm -rf libs && tsc -p tsconfig.lib.json",
+    "prepublishOnly": "rm -rf libs && tsc -p tsconfig.lib.json && yarn cp:assets",
     "cp:assets": "cp src/heiti.js libs/heiti.js   "
   },
   "dependencies": {
