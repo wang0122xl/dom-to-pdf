@@ -2,7 +2,7 @@
  * @Date: 2022-03-11 16:20:55
  * @Author: wang0122xl@163.com
  * @LastEditors: wang0122xl@163.com
- * @LastEditTime: 2022-03-17 13:42:42
+ * @LastEditTime: 2022-03-17 14:54:00
  * @Description: file content
  */
 import jspdf from 'jspdf'
@@ -39,7 +39,7 @@ const defaultIsPDFTableCallback = (ele: HTMLTableElement) => {
   * @param {boolean} lastElementOnBottom 控制最后一个元素是否位于当页最下方，只有当lastElementAsFooter = false时有效
   * @param {boolean} isPdfTableCallback 判断table是否需要特殊处理：td，th独立换页逻辑
   * @param {PDFSize} [size = A4Size] pdf尺寸
-  * @param {PDFPadding} [padding = [0, 0, 0, 0]] pdf内边距，尺寸为实际的pt值，[上，右，下，左]
+  * @param {PDFPadding} [padding = [0, 0, 0, 0]] pdf内边距，尺寸为实际的mm值，[上，右，下，左]
   * @param {ExtraRenderFunction} renderPageHeader 自定义pdf页眉
   * @param {ExtraRenderFunction} renderPageFooter 自定义pdf页脚
   * @param {boolean} [firstElementAsHeader = true] 首元素是否当做页眉处理，true：分页时首元素始终绘制与最顶部
@@ -251,10 +251,10 @@ class DomToPdf {
         }
 
         /**
-         * @description: px等比转换至pt
+         * @description: px等比转换至mm
          * @param {number} length 要转换的px值
          * @param {HTMLElement} element 容器element
-         * @return {number} pt值
+         * @return {number} mm值
        */
         function calculateLength(length: number) {
             return (size.width / parentRect.width) * length

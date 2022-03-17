@@ -1,5 +1,5 @@
 {
-  "name": "dom-to-pdf",
+  "name": "element-to-pdf",
   "private": false,
   "version": "1.0.0",
   "homepage": "https://wang0122xl.github.io/dom-to-pdf/",
@@ -9,8 +9,10 @@
   ],
   "keywords": [
     "pdfjs",
-    "dom-to-image",
-    "dom-to-pdf"
+    "html-to-image",
+    "dom-to-pdf",
+    "svg",
+    "canvas"
   ],
   "license": "MIT",
   "repository": {
