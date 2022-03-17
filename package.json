@@ -1,9 +1,9 @@
 {
   "name": "element-to-pdf",
   "private": false,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "homepage": "https://wang0122xl.github.io/dom-to-pdf/",
-  "main": "libs/index.js",
+  "main": "libs/types/index.d.ts",
   "files": [
     "libs/*"
   ],
@@ -34,8 +34,6 @@
     "jspdf": "^2.5.1"
   },
   "devDependencies": {
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2",
     "@originjs/vite-plugin-commonjs": "^1.0.3",
     "@types/react": "^17.0.33",
     "@types/react-dom": "^17.0.10",
@@ -43,6 +41,8 @@
     "antd": "^4.19.2",
     "default": "^0.1.1",
     "less": "^4.1.2",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
     "typescript": "^4.5.4",
     "vite": "^2.8.0",
     "vite-plugin-windicss": "^1.8.3",
