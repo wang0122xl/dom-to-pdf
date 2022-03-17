@@ -2,23 +2,24 @@
  * @Date: 2022-03-11 16:20:55
  * @Author: wang0122xl@163.com
  * @LastEditors: wang0122xl@163.com
- * @LastEditTime: 2022-03-17 10:57:48
+ * @LastEditTime: 2022-03-17 13:15:51
  * @Description: file content
  */
 import jspdf from 'jspdf'
 import * as htmlToImage from 'html-to-image/es'
 
+// pdf纸张尺寸，单位mm
 type PDFSize = {
     width: number
     height: number
 }
-const A4Size: PDFSize = {
+export const A4Size: PDFSize = {
     width: 210,
     height: 297
 }
-const A5Size: PDFSize = {
-    width: 419.527,
-    height: 595.275
+export const A5Size: PDFSize = {
+    width: 148,
+    height: 210
 }
 type ExtraRenderFunction = (pdf: jspdf, currentPage: number) => void
 
@@ -34,8 +35,8 @@ const defaultIsPDFTableCallback = (ele: HTMLTableElement) => {
 
 /**
   * @param {boolean} [inOnePdf = false] 多个元素是否生成在一个pdf中
-  * @param {boolean} [seperate = true] 多元素生成在一个pdf，元素间是否换页
   * @param {boolean} isSeperatorCallback 判断元素是否作为换页元素，该元素渲染后立即换页
+  * @param {boolean} lastElementOnBottom 控制最后一个元素是否位于当页最下方，只有当lastElementAsFooter = false时有效
   * @param {boolean} isPdfTableCallback 判断table是否需要特殊处理：td，th独立换页逻辑
   * @param {PDFSize} [size = A4Size] pdf尺寸
   * @param {PDFPadding} [padding = [0, 0, 0, 0]] pdf内边距，尺寸为实际的pt值，[上，右，下，左]
@@ -47,7 +48,7 @@ const defaultIsPDFTableCallback = (ele: HTMLTableElement) => {
 */
 type DomToPDFProps = {
     inOnePdf?: boolean
-    seperate?: boolean
+    lastElementOnBottom?: boolean
     isSeperatorCallback?: (ele: HTMLElement) => boolean
     isPdfTableCallback?: (ele: HTMLTableElement) => boolean
     size?: PDFSize
@@ -107,26 +108,24 @@ class DomToPdf {
         return Object.prototype.toString.call(obj) === `[object ${target}]`
     }
 
-    private recursiveFindClass(ele: HTMLElement | null, target: string): null | HTMLElement {
+    private recursiveFindClass(ele: HTMLElement | null, target: string, originEle: HTMLElement): null | HTMLElement {
         if (!ele) {
-            console.warn('ele: ', ele, '上未找到相应父元素', target)
             return null
         }
         if (this.objectIs(ele, target)) {
             return ele
         }
-        return this.recursiveFindClass(ele.parentElement, target)
+        return this.recursiveFindClass(ele.parentElement, target, originEle)
     }
 
-    private recursiveFindTagName(ele: HTMLElement | null, target: string): null | HTMLElement {
+    private recursiveFindTagName(ele: HTMLElement | null, target: string, originEle: HTMLElement): null | HTMLElement {
         if (!ele) {
-            console.warn('ele: ', ele, '上未找到相应父元素', target)
             return null
         }
         if (ele.tagName === target) {
             return ele
         }
-        return this.recursiveFindClass(ele.parentElement, target)
+        return this.recursiveFindTagName(ele.parentElement, target, originEle)
     }
 
     private async pdfAddEle(props: Omit<DomToPDFProps, 'size' | 'inOnePdf'> & {
@@ -169,7 +168,7 @@ class DomToPdf {
      * @param {HTMLDivElement[]} elements 需要转换成pdf的所有div
      * @return {Promise<jspdf[]>} 返回
      */
-    public async transformToPdf(props: Omit<DomToPDFProps, 'inOnePdf' | 'seperate'> & {
+    public async transformToPdf(props: Omit<DomToPDFProps, 'inOnePdf'> & {
         pdf?: jspdf
         element: HTMLDivElement
         startPage?: number
@@ -182,6 +181,7 @@ class DomToPdf {
         const {
             isSeperatorCallback = defaultIsSeperatorCallback,
             isPdfTableCallback = defaultIsPDFTableCallback,
+            lastElementOnBottom = true,
             firstElementAsHeader = true,
             lastElementAsFooter = true,
             element,
@@ -320,10 +320,10 @@ class DomToPdf {
             }
 
             if (inTable && self.objectIs(currentEle!, 'HTMLTableRowElement') && stickyTableHeader) {
-                const inHead = !!self.recursiveFindTagName(currentEle!, 'THEAD')
+                const inHead = !!self.recursiveFindTagName(currentEle!, 'THEAD', currentEle!)
 
                 if (!inHead) {
-                    const table = self.recursiveFindClass(currentEle!, 'HTMLTableElement')!
+                    const table = self.recursiveFindClass(currentEle!, 'HTMLTableElement', currentEle!)!
                     const headTr = table.querySelector('thead > tr') as HTMLElement
                     const bodyTr = table.querySelector('tbody > tr')! as HTMLElement
                     const {
@@ -385,19 +385,23 @@ class DomToPdf {
             if (dValue < 0) {
                 createNewPage(self, inTable, childEle)
             }
-            const originTop = top
+            let originTop = top
             
             if (i < parentChildren.length - 1) {
                 top += calculateLength(parentChildren[i + 1].getBoundingClientRect().y) - eleY
             } else if (inTable) {
                 top += extraOffsetY || 0
             }
+
+            if (i === parentChildren.length - 1 && !inTable) {
+                if (lastElementAsFooter || lastElementOnBottom) {
+                    originTop = lastEleAsFooterY
+                }
+            }
             promises.push(self.pdfAddEle({
                 pdf,
                 element: childEle,
-                top: (i === parentChildren.length - 1 && !inTable && lastElementAsFooter) ?
-                    lastEleAsFooterY :
-                    originTop,
+                top: originTop,
                 left,
                 width: pdfWidth,
                 height: eleHeight,
@@ -409,11 +413,12 @@ class DomToPdf {
         }
 
         renderPageHeader?.(pdf, 1)
+        renderPageFooter?.(pdf, 1)
+
         for (let i = 0; i < childrenElements.length; i++) {
             const childEle = element.children[i] as HTMLElement
             handleChildEle(childEle, i, childrenElements, )
         }
-        renderPageFooter?.(pdf, currentPage)
 
         await Promise.all(promises)
 
@@ -431,7 +436,6 @@ class DomToPdf {
     }): Promise<jspdf[]> {
         const {
             inOnePdf = true,
-            seperate = false,
             elements,
             ...restProps
         } = props
