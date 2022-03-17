@@ -1,9 +1,9 @@
 {
   "name": "element-to-pdf",
   "private": false,
-  "version": "1.0.1",
+  "version": "1.0.2",
   "homepage": "https://wang0122xl.github.io/dom-to-pdf/",
-  "main": "libs/types/index.d.ts",
+  "main": "libs/index.d.ts",
   "files": [
     "libs/*"
   ],
