@@ -1,20 +1,39 @@
 {
   "name": "dom-to-pdf",
-  "private": true,
-  "version": "0.0.0",
+  "private": false,
+  "version": "1.0.0",
+  "homepage": "https://wang0122xl.github.io/dom-to-pdf/",
+  "main": "libs/index.js",
+  "files": [
+    "libs/*"
+  ],
+  "keywords": [
+    "pdfjs",
+    "dom-to-image",
+    "dom-to-pdf"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wang0122xl/dom-to-pdf"
+  },
+  "author": {
+    "name": "fe_jason"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "prepublishOnly": "rm -rf libs && tsc -p tsconfig.lib.json",
+    "cp:assets": "cp src/heiti.js libs/heiti.js   "
   },
   "dependencies": {
     "html-to-image": "^1.6.2",
-    "html2canvas": "^1.4.1",
-    "jspdf": "^2.5.1",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2"
+    "jspdf": "^2.5.1"
   },
   "devDependencies": {
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
     "@originjs/vite-plugin-commonjs": "^1.0.3",
     "@types/react": "^17.0.33",
     "@types/react-dom": "^17.0.10",
