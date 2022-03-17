@@ -2,14 +2,11 @@
  * @Date: 2022-03-16 15:14:33
  * @Author: wang0122xl@163.com
  * @LastEditors: wang0122xl@163.com
- * @LastEditTime: 2022-03-16 18:05:19
+ * @LastEditTime: 2022-03-17 10:58:41
  * @Description: file content
 -->
 # dom-to-pdf
 ## TODO
-* 多元素转PDF
-* pdf-table 判断回调方法实现
-* pdf-table 换页场景表头是否复用逻辑
 * 额外页眉页脚使用html dom实现
 
 ## NOTICE

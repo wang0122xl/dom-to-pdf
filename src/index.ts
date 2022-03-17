@@ -2,7 +2,7 @@
  * @Date: 2022-03-11 16:20:55
  * @Author: wang0122xl@163.com
  * @LastEditors: wang0122xl@163.com
- * @LastEditTime: 2022-03-16 18:00:48
+ * @LastEditTime: 2022-03-17 10:57:48
  * @Description: file content
  */
 import jspdf from 'jspdf'
@@ -28,6 +28,10 @@ const defaultIsSeperatorCallback = (ele: HTMLElement) => {
     return ele.classList.contains('pdf-seperator')
 }
 
+const defaultIsPDFTableCallback = (ele: HTMLTableElement) => {
+    return ele.classList.contains('pdf-table')
+}
+
 /**
   * @param {boolean} [inOnePdf = false] 多个元素是否生成在一个pdf中
   * @param {boolean} [seperate = true] 多元素生成在一个pdf，元素间是否换页
@@ -39,8 +43,7 @@ const defaultIsSeperatorCallback = (ele: HTMLElement) => {
   * @param {ExtraRenderFunction} renderPageFooter 自定义pdf页脚
   * @param {boolean} [firstElementAsHeader = true] 首元素是否当做页眉处理，true：分页时首元素始终绘制与最顶部
   * @param {boolean} [lastElementAsFooter = true] 末元素是否当做页脚处理，true：分页时末元素始终绘制于最底部
-  * @param {string} [tableClass = 'pdf-table'] 需要当做table处理的元素类名，默认pdf-table
-  * @param {boolean} [noStickyTableHeader = true] 命中的table元素表头换页时是否显示在最上面 
+  * @param {boolean} [stickyTableHeader = true] 命中的table元素表头换页时是否显示在最上面 
 */
 type DomToPDFProps = {
     inOnePdf?: boolean
@@ -53,8 +56,7 @@ type DomToPDFProps = {
     renderPageFooter?: ExtraRenderFunction
     firstElementAsHeader?: boolean
     lastElementAsFooter?: boolean
-    tableClass?: string
-    noStickyTableHeader?: boolean
+    stickyTableHeader?: boolean
 }
 class DomToPdf {
     static TransformingClassName = 'dom-to-pdf-transforming'
@@ -68,14 +70,6 @@ class DomToPdf {
     constructor() {
 
     }
-    /**
-     * @description: 
-     * @param {HTMLDivElement} element
-     * @return {*}
-     */
-    public async getResult(element: HTMLDivElement) {
-
-    }
 
     /**
      * @description: 创建jspdf对象，或返回原有jspdf
@@ -83,14 +77,15 @@ class DomToPdf {
      * @param {jspdf} pdf
      * @return {jspdf}
      */
-    private async createPdfIfNotExisted(size: PDFSize, pdf?: jspdf) {
+    private async createPdfIfNotExisted(size?: PDFSize, pdf?: jspdf) {
         let resultPdf = pdf
+        const actualSize = size || A4Size
 
         if (!this.heitiString) {
             await this.loadFont()
         }
         if (!resultPdf) {
-            resultPdf = new jspdf('p', 'mm', [size.width, size.height])
+            resultPdf = new jspdf('p', 'mm', [actualSize.width, actualSize.height])
             resultPdf.addFileToVFS('heiti.ttf', this.heitiString)
             resultPdf.addFont('heiti.ttf', 'heiti', 'normal')
             resultPdf.setFont('heiti')
@@ -112,7 +107,7 @@ class DomToPdf {
         return Object.prototype.toString.call(obj) === `[object ${target}]`
     }
 
-    private recursiveFind(ele: HTMLElement | null, target: string): null | HTMLElement {
+    private recursiveFindClass(ele: HTMLElement | null, target: string): null | HTMLElement {
         if (!ele) {
             console.warn('ele: ', ele, '上未找到相应父元素', target)
             return null
@@ -120,7 +115,18 @@ class DomToPdf {
         if (this.objectIs(ele, target)) {
             return ele
         }
-        return this.recursiveFind(ele.parentElement, target)
+        return this.recursiveFindClass(ele.parentElement, target)
+    }
+
+    private recursiveFindTagName(ele: HTMLElement | null, target: string): null | HTMLElement {
+        if (!ele) {
+            console.warn('ele: ', ele, '上未找到相应父元素', target)
+            return null
+        }
+        if (ele.tagName === target) {
+            return ele
+        }
+        return this.recursiveFindClass(ele.parentElement, target)
     }
 
     private async pdfAddEle(props: Omit<DomToPDFProps, 'size' | 'inOnePdf'> & {
@@ -163,16 +169,19 @@ class DomToPdf {
      * @param {HTMLDivElement[]} elements 需要转换成pdf的所有div
      * @return {Promise<jspdf[]>} 返回
      */
-    public async transformToPdf(props: DomToPDFProps & {
+    public async transformToPdf(props: Omit<DomToPDFProps, 'inOnePdf' | 'seperate'> & {
         pdf?: jspdf
         element: HTMLDivElement
-    }): Promise<jspdf> {
+        startPage?: number
+    }): Promise<{
+        pdf: jspdf,
+        pages: number
+    }> {
         const self = this
         props.element.classList.add(DomToPdf.TransformingClassName)
         const {
             isSeperatorCallback = defaultIsSeperatorCallback,
-            inOnePdf = false,
-            seperate = true,
+            isPdfTableCallback = defaultIsPDFTableCallback,
             firstElementAsHeader = true,
             lastElementAsFooter = true,
             element,
@@ -180,8 +189,8 @@ class DomToPdf {
             padding = [0, 0, 0, 0],
             renderPageHeader,
             renderPageFooter,
-            tableClass = 'pdf-table',
-            noStickyTableHeader = true
+            stickyTableHeader = true,
+            startPage = 0
         } = props
         // pdf宽度
         const pdfWidth = size.width - padding[1] - padding[3]
@@ -279,7 +288,7 @@ class DomToPdf {
             return size.height - bottomY
         }
 
-        function createNewPage(self: DomToPdf) {
+        function createNewPage(self: DomToPdf, inTable?: boolean, currentEle?: HTMLElement) {
             if (lastElementAsFooter) {
                 promises.push(self.pdfAddEle({
                     pdf,
@@ -288,15 +297,15 @@ class DomToPdf {
                     left,
                     width: pdfWidth,
                     height: lastEleHeight,
-                    page: currentPage
+                    page: currentPage + startPage
                 }))
             }
-            renderPageFooter?.(pdf, pdf.getCurrentPageInfo().pageNumber)
 
             currentPage++
             pdf.addPage()
             initializePage()
-            renderPageHeader?.(pdf, pdf.getCurrentPageInfo().pageNumber)
+            renderPageHeader?.(pdf, currentPage)
+            renderPageFooter?.(pdf, currentPage)
             if (firstElementAsHeader) {
                 promises.push(self.pdfAddEle({
                     pdf,
@@ -305,16 +314,42 @@ class DomToPdf {
                     left,
                     width: pdfWidth,
                     height: firstEleHeight,
-                    page: currentPage
+                    page: currentPage + startPage
                 }))
                 top += secondEleY - firstEleY
+            }
+
+            if (inTable && self.objectIs(currentEle!, 'HTMLTableRowElement') && stickyTableHeader) {
+                const inHead = !!self.recursiveFindTagName(currentEle!, 'THEAD')
+
+                if (!inHead) {
+                    const table = self.recursiveFindClass(currentEle!, 'HTMLTableElement')!
+                    const headTr = table.querySelector('thead > tr') as HTMLElement
+                    const bodyTr = table.querySelector('tbody > tr')! as HTMLElement
+                    const {
+                        y: headTrY,
+                        height: headTrHeight
+                    } = calculateBoundingRect(headTr)
+                    const {
+                        y: bodyTrY
+                    } = calculateBoundingRect(bodyTr)
+                    promises.push(self.pdfAddEle({
+                        pdf,
+                        element: headTr,
+                        top,
+                        left,
+                        width: pdfWidth,
+                        height: headTrHeight,
+                        page: currentPage + startPage
+                    }))
+                    top += bodyTrY - headTrY
+                }
             }
         }
 
         initializePage()
 
         const promises: Promise<void>[] = []
-        renderPageFooter?.(pdf, 1)
 
         const lastEleAsFooterY = size.height - padding[2] - lastEleHeight
 
@@ -324,7 +359,9 @@ class DomToPdf {
                 y: eleY
             } = calculateBoundingRect(childEle)
 
-            const isTable = Object.prototype.toString.call(childEle) === '[object HTMLTableElement]'
+            const isTable = 
+                Object.prototype.toString.call(childEle) === '[object HTMLTableElement]' &&
+                isPdfTableCallback(childEle as HTMLTableElement)
             if (isTable) {
                 let offsetY
                 const trs = childEle.querySelectorAll('tr') as unknown as HTMLElement[]
@@ -346,14 +383,13 @@ class DomToPdf {
 
             // 元素跨页
             if (dValue < 0) {
-                createNewPage(self)
+                createNewPage(self, inTable, childEle)
             }
             const originTop = top
             
             if (i < parentChildren.length - 1) {
                 top += calculateLength(parentChildren[i + 1].getBoundingClientRect().y) - eleY
             } else if (inTable) {
-                console.log(extraOffsetY)
                 top += extraOffsetY || 0
             }
             promises.push(self.pdfAddEle({
@@ -365,13 +401,14 @@ class DomToPdf {
                 left,
                 width: pdfWidth,
                 height: eleHeight,
-                page: currentPage
+                page: currentPage + startPage
             }))
             if (isSeperatorCallback(childEle)) {
                 createNewPage(self)
             }
         }
 
+        renderPageHeader?.(pdf, 1)
         for (let i = 0; i < childrenElements.length; i++) {
             const childEle = element.children[i] as HTMLElement
             handleChildEle(childEle, i, childrenElements, )
@@ -382,8 +419,48 @@ class DomToPdf {
 
         props.element.classList.remove(DomToPdf.TransformingClassName)
 
-        return pdf
+        return {
+            pdf,
+            pages: currentPage
+        }
+    }
+
+
+    public async transformToPdfs(props: DomToPDFProps & {
+        elements: HTMLDivElement[]
+    }): Promise<jspdf[]> {
+        const {
+            inOnePdf = true,
+            seperate = false,
+            elements,
+            ...restProps
+        } = props
+
+        const pdfs: jspdf[] = []
+        const defaultPdf = await this.createPdfIfNotExisted(restProps.size)
+        let totalPages = 0
+        for (let i = 0; i < elements.length; i ++) {
+            if (i > 0 && inOnePdf) {
+                defaultPdf.addPage()
+            }
+            const ele = elements[i]
+            const pdf = await this.createPdfIfNotExisted(restProps.size, inOnePdf ? defaultPdf : undefined)
+            const {
+                pdf: resultPdf,
+                pages
+            } = await this.transformToPdf({
+                ...restProps,
+                element: ele,
+                pdf: pdf,
+                startPage: inOnePdf ? totalPages : 0
+            })
+            totalPages += pages
+            pdfs.push(resultPdf)
+        }
+
+        return inOnePdf ? [pdfs[0]] : pdfs
     }
 }
+
 
 export default DomToPdf
