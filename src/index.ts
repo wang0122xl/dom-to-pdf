@@ -2,7 +2,7 @@
  * @Date: 2022-03-11 16:20:55
  * @Author: wang0122xl@163.com
  * @LastEditors: wang0122xl@163.com
- * @LastEditTime: 2022-03-17 14:54:00
+ * @LastEditTime: 2022-03-18 13:04:11
  * @Description: file content
  */
 import jspdf from 'jspdf'
@@ -24,6 +24,11 @@ export const A5Size: PDFSize = {
 type ExtraRenderFunction = (pdf: jspdf, currentPage: number) => void
 
 type PDFPadding = [top: number, right: number, bottom: number, left: number]
+
+type TransformPDFRes = {
+    pdf: jspdf,
+    doPrint: (newWindow?: boolean) => void
+}
 
 const defaultIsSeperatorCallback = (ele: HTMLElement) => {
     return ele.classList.contains('pdf-seperator')
@@ -172,10 +177,13 @@ class DomToPdf {
         pdf?: jspdf
         element: HTMLDivElement
         startPage?: number
-    }): Promise<{
-        pdf: jspdf,
+    }): Promise<TransformPDFRes & {
         pages: number
     }> {
+        if (!props.element) {
+            console.error('element is ' + props.element)
+            throw 'element is ' + props.element
+        }
         const self = this
         props.element.classList.add(DomToPdf.TransformingClassName)
         const {
@@ -426,21 +434,32 @@ class DomToPdf {
 
         return {
             pdf,
-            pages: currentPage
+            pages: currentPage,
+            doPrint: (newWindow = true) => {
+                let iframe = document.createElement('iframe')
+                iframe.hidden = true
+                const url = URL.createObjectURL(pdf.output('blob'))
+                iframe.src = url
+                const w = newWindow ? window.open()! : window
+                 w.document.body.appendChild(iframe)
+                iframe.contentWindow?.print()
+                URL.revokeObjectURL(url)
+
+            },
         }
     }
 
 
     public async transformToPdfs(props: DomToPDFProps & {
         elements: HTMLDivElement[]
-    }): Promise<jspdf[]> {
+    }): Promise<TransformPDFRes[]> {
         const {
             inOnePdf = true,
             elements,
             ...restProps
         } = props
 
-        const pdfs: jspdf[] = []
+        const res: TransformPDFRes[] = []
         const defaultPdf = await this.createPdfIfNotExisted(restProps.size)
         let totalPages = 0
         for (let i = 0; i < elements.length; i ++) {
@@ -450,8 +469,8 @@ class DomToPdf {
             const ele = elements[i]
             const pdf = await this.createPdfIfNotExisted(restProps.size, inOnePdf ? defaultPdf : undefined)
             const {
-                pdf: resultPdf,
-                pages
+                pages,
+                ...item
             } = await this.transformToPdf({
                 ...restProps,
                 element: ele,
@@ -459,10 +478,10 @@ class DomToPdf {
                 startPage: inOnePdf ? totalPages : 0
             })
             totalPages += pages
-            pdfs.push(resultPdf)
+            res.push(item)
         }
 
-        return inOnePdf ? [pdfs[0]] : pdfs
+        return inOnePdf ? [res[0]] : res
     }
 }
 

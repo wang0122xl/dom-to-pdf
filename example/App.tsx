@@ -2,7 +2,7 @@
  * @Date: 2022-03-11 15:22:08
  * @Author: wang0122xl@163.com
  * @LastEditors: wang0122xl@163.com
- * @LastEditTime: 2022-03-17 13:17:39
+ * @LastEditTime: 2022-03-18 11:36:28
  * @Description: file content
  */
 import { Button, Spin } from 'antd'
@@ -48,21 +48,16 @@ const App = () => {
     }
 
     const doPrint = async () => {
-        const pdfs = await _getPdfs()
-        for (const pdf of pdfs) {
-            const w = window.open()!
-            const iframe = document.createElement('iframe')
-            iframe.hidden = true
-            iframe.src = URL.createObjectURL(pdf.output('blob'))
-             w.document.body.appendChild(iframe)
-            iframe.contentWindow?.print()
+        const res = await _getPdfs()
+        for (const item of res) {
+            item.doPrint(false)
         }
     }
 
     const doDownload = async () => {
-        const pdfs = await _getPdfs()
-        for (const pdf of pdfs) {
-            pdf.save('test')
+        const res = await _getPdfs()
+        for (const item of res) {
+            item.pdf.save('test')
         }
     }
 
