@@ -2,7 +2,7 @@
  * @Date: 2022-03-11 16:20:55
  * @Author: wang0122xl@163.com
  * @LastEditors: wang0122xl@163.com
- * @LastEditTime: 2022-04-14 18:34:45
+ * @LastEditTime: 2022-04-14 18:49:58
  * @Description: file content
  */
 import jspdf from 'jspdf'
@@ -245,7 +245,7 @@ class DomToPdf {
         function calculateBoundingRect(ele: HTMLElement): Pick<DOMRect, 'width' | 'y' | 'height'> {
             const rect = ele.getBoundingClientRect()
             return {
-                y: calculateLength(rect.y),
+                y: calculateLength(rect.top),
                 height: calculateLength(rect.height),
                 width: calculateLength(rect.width)
             }
@@ -256,7 +256,7 @@ class DomToPdf {
          * @return {*}
          */
         function initializePage() {
-            top = firstEleY - calculateLength(parentRect.y) + padding[0]
+            top = firstEleY - calculateLength(parentRect.top) + padding[0]
         }
 
         /**
@@ -280,7 +280,7 @@ class DomToPdf {
             const rect = calculateBoundingRect(ele)
             let total = rect.height + padding[0] + padding[2]
             if (firstElementAsHeader && !isFirst) {
-                total += firstEleHeight + firstEleY - calculateLength(parentRect.y) + firstOffsetY
+                total += firstEleHeight + firstEleY - calculateLength(parentRect.top) + firstOffsetY
             }
             if (lastElementAsFooter && !isLast) {
                 total += lastOffsetY + lastEleHeight
@@ -376,8 +376,8 @@ class DomToPdf {
                 const trs = childEle.querySelectorAll('tr') as unknown as HTMLElement[]
                 if (i < parentChildren.length - 1) {
                     offsetY = calculateLength(
-                        parentChildren[i + 1].getBoundingClientRect().y -
-                        trs[trs.length - 1].getBoundingClientRect().y
+                        parentChildren[i + 1].getBoundingClientRect().top -
+                        trs[trs.length - 1].getBoundingClientRect().top
                     )
                 }
                 for (let i = 0; i < trs.length; i++) {
@@ -397,7 +397,7 @@ class DomToPdf {
             let originTop = top
             
             if (i < parentChildren.length - 1) {
-                top += calculateLength(parentChildren[i + 1].getBoundingClientRect().y) - eleY
+                top += calculateLength(parentChildren[i + 1].getBoundingClientRect().top) - eleY
             } else if (inTable) {
                 top += extraOffsetY || 0
             }
