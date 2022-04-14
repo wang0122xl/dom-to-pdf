@@ -2,7 +2,7 @@
  * @Date: 2022-03-11 16:20:55
  * @Author: wang0122xl@163.com
  * @LastEditors: wang0122xl@163.com
- * @LastEditTime: 2022-03-18 13:04:11
+ * @LastEditTime: 2022-04-14 18:34:45
  * @Description: file content
  */
 import jspdf from 'jspdf'
@@ -163,6 +163,7 @@ class DomToPdf {
 
                     context.drawImage(img, 0, 0, canvas.width, canvas.height)
                     const src = canvas.toDataURL('image/jpeg', 1)
+                    console.log(props)
                     props.pdf.addImage(src, 'JPEG', props.left, props.top, props.width, props.height)
                 })
         })
