@@ -2,7 +2,7 @@
  * @Date: 2022-03-17 11:34:36
  * @Author: wang0122xl@163.com
  * @LastEditors: wang0122xl@163.com
- * @LastEditTime: 2022-03-17 13:17:47
+ * @LastEditTime: 2022-05-26 14:58:22
  * @Description: file content
  */
 
@@ -28,6 +28,8 @@ const PrintContent = (props: {
             <div className='text-24px h-24px font-500 text-[#333] text-center mt-10px bg-red-400'>
                 dom-to-pdf
             </div>
+            <img src='https://rpfield-zlerp.oss-cn-beijing.aliyuncs.com/test/sys_config/image/20210928/152a412d1d00e26020afd9e0f0d0081d.jpg' />
+
             {items.map((c, index) => (
                 <div key={index} className='border-1px border-solid border-[#000]' style={{
                     backgroundColor: c,

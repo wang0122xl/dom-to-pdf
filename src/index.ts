@@ -2,7 +2,7 @@
  * @Date: 2022-03-11 16:20:55
  * @Author: wang0122xl@163.com
  * @LastEditors: wang0122xl@163.com
- * @LastEditTime: 2022-04-14 18:49:58
+ * @LastEditTime: 2022-05-26 15:00:01
  * @Description: file content
  */
 import jspdf from 'jspdf'
@@ -148,7 +148,7 @@ class DomToPdf {
             props.element.style.marginTop = '0'
             props.element.style.marginBottom = '0'
             return htmlToImage
-                .toSvg(props.element, { quality: 1 })
+                .toSvg(props.element, { quality: 1, cacheBust: true })
                 .then(imgData => this.promisifyCreateImage(imgData))
                 .then(img => {
                     props.pdf.setPage(props.page)
