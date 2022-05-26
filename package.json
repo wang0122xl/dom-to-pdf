@@ -1,7 +1,7 @@
 {
   "name": "element-to-pdf",
   "private": false,
-  "version": "1.0.6",
+  "version": "1.0.7",
   "homepage": "https://wang0122xl.github.io/dom-to-pdf/",
   "main": "libs/index.js",
   "files": [
