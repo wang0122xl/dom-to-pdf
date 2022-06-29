@@ -2,7 +2,7 @@
  * @Date: 2022-03-11 16:20:55
  * @Author: wang0122xl@163.com
  * @LastEditors: wang0122xl@163.com
- * @LastEditTime: 2022-05-26 15:00:01
+ * @LastEditTime: 2022-06-29 14:37:14
  * @Description: file content
  */
 import jspdf from 'jspdf'
@@ -21,7 +21,7 @@ export const A5Size: PDFSize = {
     width: 148,
     height: 210
 }
-type ExtraRenderFunction = (pdf: jspdf, currentPage: number) => void
+type ExtraRenderFunction = (pdf: jspdf, currentPage: number, totalPage: number) => void
 
 type PDFPadding = [top: number, right: number, bottom: number, left: number]
 
@@ -163,7 +163,6 @@ class DomToPdf {
 
                     context.drawImage(img, 0, 0, canvas.width, canvas.height)
                     const src = canvas.toDataURL('image/jpeg', 1)
-                    console.log(props)
                     props.pdf.addImage(src, 'JPEG', props.left, props.top, props.width, props.height)
                 })
         })
@@ -185,6 +184,7 @@ class DomToPdf {
             console.error('element is ' + props.element)
             throw 'element is ' + props.element
         }
+
         const self = this
         props.element.classList.add(DomToPdf.TransformingClassName)
         const {
@@ -297,6 +297,11 @@ class DomToPdf {
             return size.height - bottomY
         }
 
+        async function renderHeaderFooter(currentPage: number, totalPage: number) {
+            renderPageHeader?.(pdf, currentPage, totalPage)
+            renderPageFooter?.(pdf, currentPage, totalPage)
+        }
+
         function createNewPage(self: DomToPdf, inTable?: boolean, currentEle?: HTMLElement) {
             if (lastElementAsFooter) {
                 promises.push(self.pdfAddEle({
@@ -313,8 +318,7 @@ class DomToPdf {
             currentPage++
             pdf.addPage()
             initializePage()
-            renderPageHeader?.(pdf, currentPage)
-            renderPageFooter?.(pdf, currentPage)
+            // promises.push(renderHeaderFooter(currentPage))
             if (firstElementAsHeader) {
                 promises.push(self.pdfAddEle({
                     pdf,
@@ -421,15 +425,15 @@ class DomToPdf {
             }
         }
 
-        renderPageHeader?.(pdf, 1)
-        renderPageFooter?.(pdf, 1)
-
         for (let i = 0; i < childrenElements.length; i++) {
             const childEle = element.children[i] as HTMLElement
             handleChildEle(childEle, i, childrenElements, )
         }
-
         await Promise.all(promises)
+        for (let i = 0; i < currentPage; i++) {
+            pdf.setPage(i + 1 + startPage)
+            renderHeaderFooter(i + 1, currentPage)
+        }
 
         props.element.classList.remove(DomToPdf.TransformingClassName)
 
