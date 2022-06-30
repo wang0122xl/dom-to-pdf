@@ -1,7 +1,7 @@
 {
   "name": "element-to-pdf",
   "private": false,
-  "version": "1.0.7",
+  "version": "1.0.9",
   "homepage": "https://wang0122xl.github.io/dom-to-pdf/",
   "main": "libs/index.js",
   "files": [
@@ -20,7 +20,8 @@
     "url": "https://github.com/wang0122xl/dom-to-pdf"
   },
   "author": {
-    "name": "fe_jason"
+    "name": "fe_jason",
+    "email": "wang0122xl@163.com"
   },
   "scripts": {
     "dev": "vite",
