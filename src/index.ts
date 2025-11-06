@@ -7,7 +7,6 @@
  */
 import jspdf from 'jspdf'
 import * as htmlToImage from 'html-to-image/es'
-
 // pdf纸张尺寸，单位mm
 type PDFSize = {
     width: number
