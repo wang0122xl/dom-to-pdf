@@ -16,7 +16,7 @@ const PrintContent = (props: {
             return Math.round(Math.random() * 255)
         }
         const result: string[] = []
-        for (let i = 0; i < 11; i++) {
+        for (let i = 0; i < 18; i++) {
 
             result.push(`rgb(${getRandom()}, ${getRandom()}, ${getRandom()})`)
 
